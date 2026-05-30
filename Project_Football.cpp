@@ -1,202 +1,225 @@
 #include <iostream>
-#include <cstring> 
-#include <cstdlib> 
+#include <cstring>
+#include <cstdlib>
 
 using namespace std;
 
 
-// ESTRUCTURAS BASE 
 
-struct Jugador {
-    int id_jugador;
-    char nombre[50]; 
-    int goles_anotados;
-    Jugador* siguiente;
-};
 
 struct Equipo {
-    int id_equipo;
-    char nombre_equipo[50]; 
-    int puntos;
-    Jugador* plantilla; 
+    char    nombre_equipo[50];
+    int     puntos;
     Equipo* izquierdo;
     Equipo* derecho;
 };
 
 
-// FUNCIONES DEL ÁRBOL (EQUIPOS)
+//FUNCION INSERTAR EQUIPO
+void insertarEquipo(Equipo* &arbol, const char* nombre) {
 
-void insertarEquipo(Equipo* &arbol, int id, const char* nombre, int puntos) {
+    
     if (arbol == NULL) {
         arbol = (Equipo*)malloc(sizeof(Equipo));
-        arbol->id_equipo = id;
         strcpy(arbol->nombre_equipo, nombre);
-        arbol->puntos = puntos;
-        arbol->plantilla = NULL;
+        arbol->puntos    = 0;      
         arbol->izquierdo = NULL;
-        arbol->derecho = NULL;
-    } else if (puntos < arbol->puntos) {
-        insertarEquipo(arbol->izquierdo, id, nombre, puntos);
+        arbol->derecho   = NULL;
+        return;
+    }
+
+    
+    if (strcmp(nombre, arbol->nombre_equipo) < 0) {
+        insertarEquipo(arbol->izquierdo, nombre);  
+
+    
+    } else if (strcmp(nombre, arbol->nombre_equipo) > 0) {
+        insertarEquipo(arbol->derecho, nombre);    
+
+    
     } else {
-        insertarEquipo(arbol->derecho, id, nombre, puntos);
+        cout << ">> Error: ya existe un equipo llamado " << nombre << endl;
     }
 }
 
-Equipo* buscarEquipoPorID(Equipo* arbol, int id_buscar) {
+
+//FUNCION BUSCAR EQUIPO POR NOMBRE
+Equipo* buscarEquipoPorNombre(Equipo* arbol, const char* nombre) {
+
     if (arbol == NULL) {
         return NULL;
     }
-    if (arbol->id_equipo == id_buscar) {
-        return arbol; 
+
+    if (strcmp(arbol->nombre_equipo, nombre) == 0) {
+        return arbol;
     }
-    
-    Equipo* encontradoIzq = buscarEquipoPorID(arbol->izquierdo, id_buscar);
-    if (encontradoIzq != NULL) {
-        return encontradoIzq;
+
+    Equipo* encontrado = buscarEquipoPorNombre(arbol->izquierdo, nombre);
+    if (encontrado != NULL) {
+        return encontrado;
     }
-    
-    return buscarEquipoPorID(arbol->derecho, id_buscar);
+
+    return buscarEquipoPorNombre(arbol->derecho, nombre);
 }
+
+
+//FUNCION MOSTRAR EQUIPOS
+
 
 void mostrarEquipos(Equipo* arbol) {
-    if (arbol != NULL) {
-        mostrarEquipos(arbol->derecho); // Imprime de mayor a menor puntuación
-        cout << "[" << arbol->id_equipo << "] " << arbol->nombre_equipo << " - Puntos: " << arbol->puntos << endl;
-        mostrarEquipos(arbol->izquierdo);
+
+    if (arbol == NULL) {
+        return;
     }
+
+    mostrarEquipos(arbol->izquierdo);           
+    cout << arbol->nombre_equipo
+         << " - Puntos: " << arbol->puntos << endl; 
+    mostrarEquipos(arbol->derecho);               
 }
 
 
-// FUNCIONES DE LA LISTA Y RECURSIVIDAD
+//FUNCION TABLAS POR POR PUNTOS (DIVIDA EN TRES FUNCIONES)
 
-void registrarJugadorEnEquipo(Equipo* raizTorneo, int id_equipo, int id_jugador, const char* nombre, int goles) {
-    Equipo* equipoDestino = buscarEquipoPorID(raizTorneo, id_equipo);
+// Parte A: extraer equipos del árbol a un arreglo 
+
+void extraerEquipos(Equipo* arbol, Equipo* arreglo[], int &contador) {
+
+    if (arbol == NULL) return;
+
+    extraerEquipos(arbol->izquierdo, arreglo, contador);  
+    arreglo[contador] = arbol;                             
+    contador++;                                            
+    extraerEquipos(arbol->derecho, arreglo, contador);   
+}
+
+// Parte B: Merge Sort por puntos 
+
+void merge(Equipo* arreglo[], int izq, int mid, int der) {
+
+    int tamLeft  = mid - izq + 1;
+    int tamRight = der - mid;
+
     
-    if (equipoDestino == NULL) {
-        cout << ">> Error: No se encontro el equipo con ID " << id_equipo << ". No se pudo registrar al jugador." << endl;
-        return; 
-    }
+    Equipo* Left[100];
+    Equipo* Right[100];
 
-    Jugador* nuevoJugador = (Jugador*)malloc(sizeof(Jugador));
-    nuevoJugador->id_jugador = id_jugador;
-    strcpy(nuevoJugador->nombre, nombre); 
-    nuevoJugador->goles_anotados = goles;
-    nuevoJugador->siguiente = NULL;
+    for (int i = 0; i < tamLeft; i++)
+        Left[i] = arreglo[izq + i];
+    for (int j = 0; j < tamRight; j++)
+        Right[j] = arreglo[mid + 1 + j];
 
-    if (equipoDestino->plantilla == NULL) {
-        equipoDestino->plantilla = nuevoJugador;
-    } else {
-        Jugador* aux = equipoDestino->plantilla;
-        while (aux->siguiente != NULL) {
-            aux = aux->siguiente;
+    int i = 0, j = 0, k = izq;
+    
+    while (i < tamLeft && j < tamRight) {
+        if (Left[i]->puntos >= Right[j]->puntos) {
+            arreglo[k] = Left[i];
+            i++;
+        } else {
+            arreglo[k] = Right[j];
+            j++;
         }
-        aux->siguiente = nuevoJugador;
+        k++;
     }
-    cout << ">> Exito: Jugador '" << nombre << "' agregado a " << equipoDestino->nombre_equipo << "." << endl;
+
+    
+    while (i < tamLeft)  { arreglo[k] = Left[i];  i++; k++; }
+    while (j < tamRight) { arreglo[k] = Right[j]; j++; k++; }
 }
 
-int calcularPoderOfensivo(Jugador* actual) {
-    if (actual == NULL) {
-        return 0; 
+void mergeSort(Equipo* arreglo[], int izq, int der) {
+
+    if (izq >= der) return;  
+
+    int mid = (izq + der) / 2;
+
+    mergeSort(arreglo, izq, mid);      
+    mergeSort(arreglo, mid + 1, der);  
+    merge(arreglo, izq, mid, der);     
+}
+
+// Parte C: la función del menú 
+
+void tablaPosPorPuntos(Equipo* arbol) {
+
+    Equipo* arreglo[100];   
+    int contador = 0;
+
+    extraerEquipos(arbol, arreglo, contador);
+
+    mergeSort(arreglo, 0, contador - 1);
+
+    cout << "       TABLA DE POSICIONES              " << endl;
+
+    for (int i = 0; i < contador; i++) {
+        cout << i + 1 << ". "
+             << arreglo[i]->nombre_equipo
+             << " - " << arreglo[i]->puntos << " pts" << endl;
     }
-    return actual->goles_anotados + calcularPoderOfensivo(actual->siguiente);
+    cout << "========================================" << endl;
 }
-
-
-// 4. INYECCIÓN AUTOMÁTICA DE DATOS BASE COMO PRUEBA DEL SISTEMA
-
-void inyectarDatosPorDefecto(Equipo* &liga) {
-    // Equipos iniciales
-    insertarEquipo(liga, 101, "Real_Madrid", 15);
-    insertarEquipo(liga, 102, "Barcelona", 12);
-    insertarEquipo(liga, 103, "Milan", 18);
-
-    // Jugadores iniciales
-    registrarJugadorEnEquipo(liga, 101, 1, "Vinicius_Jr", 8);
-    registrarJugadorEnEquipo(liga, 101, 2, "Bellingham", 14);
-    registrarJugadorEnEquipo(liga, 102, 3, "Lamine_Yamal", 5);
-    registrarJugadorEnEquipo(liga, 102, 4, "Lewandowski", 10);
-    registrarJugadorEnEquipo(liga, 103, 5, "Rafael_Leao", 7);
-}
-
-
-// MAIN Y MENÚ INTERACTIVO COMPLETO
 
 int main() {
-    Equipo* liga = NULL;
 
-    cout << "=== SISTEMA AUTOMATICO ===" << endl;
-    cout << "Cargando datos base en memoria para la demostracion..." << endl;
-    inyectarDatosPorDefecto(liga);
-    cout << "Datos cargados correctamente.\n" << endl;
+    Equipo* liga = NULL;   
 
     int opcion;
     do {
-        cout << "         MENU DE GESTION DE TORNEO       " << endl;
-        cout << "1. Registrar un Equipo Nuevo" << endl;
-        cout << "2. Registrar un Jugador en un Equipo" << endl;
-        cout << "3. Ver Tabla de Posiciones General (Arbol BST)" << endl;
-        cout << "4. Calcular Poder Ofensivo de un Equipo (Recursividad)" << endl;
-        cout << "0. Salir" << endl;
+        cout << "      LIGAMASTER       " << endl;
+        cout << "1. Registrar nuevo equipo"               << endl;
+        cout << "2. Buscar equipo por nombre"             << endl;
+        cout << "3. Ver todos los equipos (alfabetico)"   << endl;
+        cout << "4. Ver tabla de posiciones (por puntos)" << endl;
+        cout << "0. Salir"                                << endl;
         cout << "Opcion: ";
         cin >> opcion;
 
         switch (opcion) {
+
             case 1: {
-                int id, pts;
                 char nombre[50];
-                cout << "\n--- REGISTRAR EQUIPO NUEVO ---" << endl;
-                cout << "Ingrese ID numerico del equipo: "; cin >> id;
-                cout << "Ingrese Nombre (use guion_bajo para espacios): "; cin >> nombre;
-                cout << "Ingrese Puntos actuales en el torneo: "; cin >> pts;
-                
-                insertarEquipo(liga, id, nombre, pts);
-                cout << ">> Exito: Equipo registrado en el sistema." << endl;
+                cout << "\n--- REGISTRAR EQUIPO ---" << endl;
+                cout << "Nombre del equipo: ";
+                cin >> nombre;
+                insertarEquipo(liga, nombre);
+                cout << ">> Equipo registrado correctamente." << endl;
                 break;
             }
 
             case 2: {
-                int id_eq, id_jug, goles;
-                char nombre_jug[50];
-                cout << "\n--- REGISTRAR JUGADOR NUEVO ---" << endl;
-                cout << "ID del equipo al que pertenece: "; cin >> id_eq;
-                cout << "ID numerico del jugador: "; cin >> id_jug;
-                cout << "Nombre del jugador (use guion_bajo para espacios): "; cin >> nombre_jug;
-                cout << "Goles anotados: "; cin >> goles;
-                
-                registrarJugadorEnEquipo(liga, id_eq, id_jug, nombre_jug, goles);
-                break;
-            }
-
-            case 3:
-                cout << "\n--- TABLA GENERAL DE POSICIONES (ORDENADA POR PTS) ---" << endl;
-                mostrarEquipos(liga);
-                break;
-
-            case 4: {
-                int id_buscar;
-                cout << "\n--- CALCULO DE PODER OFENSIVO RECURSIVO ---" << endl;
-                cout << "Ingrese el ID del equipo a analizar: ";
-                cin >> id_buscar;
-                
-                Equipo* eq = buscarEquipoPorID(liga, id_buscar);
+                char nombre[50];
+                cout << "\n--- BUSCAR EQUIPO ---" << endl;
+                cout << "Nombre del equipo: ";
+                cin >> nombre;
+                Equipo* eq = buscarEquipoPorNombre(liga, nombre);
                 if (eq != NULL) {
-                    int poder = calcularPoderOfensivo(eq->plantilla);
-                    cout << ">> El equipo " << eq->nombre_equipo << " tiene un poder ofensivo total de: " << poder << " goles." << endl;
+                    cout << ">> Encontrado: " << eq->nombre_equipo
+                         << " - " << eq->puntos << " pts" << endl;
                 } else {
-                    cout << ">> Error: Equipo no encontrado en el sistema." << endl;
+                    cout << ">> No existe ese equipo." << endl;
                 }
                 break;
             }
 
+            case 3:
+                cout << "\n--- EQUIPOS REGISTRADOS ---" << endl;
+                mostrarEquipos(liga);
+                break;
+
+            case 4:
+                tablaPosPorPuntos(liga);
+                break;
+
             case 0:
-                cout << "\nCerrando el sistema del torneo. Liberando memoria..." << endl;
+                cout << "\nSaliendo del programa...." << endl;
                 break;
 
             default:
-                cout << "\n[!] Opcion invalida. Intente de nuevo." << endl;
+                cout << "\n[!] Opcion invalida." << endl;
         }
+
     } while (opcion != 0);
 
     return 0;
 }
+
