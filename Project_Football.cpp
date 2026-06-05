@@ -9,20 +9,41 @@ using namespace std;
 
 struct Equipo {
     char    nombre_equipo[50];
-    int     puntos;
+    int     puntos;          
+    int     pj;             
+    int     ganados;
+    int     empatados;
+    int     perdidos;
+    int     goles_favor;
+    int     goles_contra;
+    int     diferencia_goles;  
     Equipo* izquierdo;
     Equipo* derecho;
 };
 
-
 //FUNCION INSERTAR EQUIPO
+int contarEquipos(Equipo* arbol) {
+    if (arbol == NULL) {
+        return 0;
+    }
+    return 1 + contarEquipos(arbol->izquierdo) + contarEquipos(arbol->derecho);
+}
+
+
 void insertarEquipo(Equipo* &arbol, const char* nombre) {
 
     
     if (arbol == NULL) {
         arbol = (Equipo*)malloc(sizeof(Equipo));
         strcpy(arbol->nombre_equipo, nombre);
-        arbol->puntos    = 0;      
+        arbol->puntos    = 0; 
+		arbol->pj               = 0;
+		arbol->ganados          = 0;
+		arbol->empatados        = 0;
+		arbol->perdidos         = 0;
+		arbol->goles_favor      = 0;
+		arbol->goles_contra     = 0;
+		arbol->diferencia_goles = 0;     
         arbol->izquierdo = NULL;
         arbol->derecho   = NULL;
         return;
@@ -67,15 +88,17 @@ Equipo* buscarEquipoPorNombre(Equipo* arbol, const char* nombre) {
 
 
 void mostrarEquipos(Equipo* arbol) {
-
+ 
+    
     if (arbol == NULL) {
         return;
     }
-
-    mostrarEquipos(arbol->izquierdo);           
-    cout << arbol->nombre_equipo
-         << " - Puntos: " << arbol->puntos << endl; 
-    mostrarEquipos(arbol->derecho);               
+ 
+    mostrarEquipos(arbol->izquierdo);
+    cout << " - " << arbol->nombre_equipo
+         << " | Pts: " << arbol->puntos
+         << " | PJ: "  << arbol->pj << endl;
+    mostrarEquipos(arbol->derecho);
 }
 
 
@@ -96,23 +119,39 @@ void extraerEquipos(Equipo* arbol, Equipo* arreglo[], int &contador) {
 // Parte B: Merge Sort por puntos 
 
 void merge(Equipo* arreglo[], int izq, int mid, int der) {
-
+ 
     int tamLeft  = mid - izq + 1;
     int tamRight = der - mid;
-
-    
+ 
     Equipo* Left[100];
     Equipo* Right[100];
-
+ 
     for (int i = 0; i < tamLeft; i++)
         Left[i] = arreglo[izq + i];
     for (int j = 0; j < tamRight; j++)
         Right[j] = arreglo[mid + 1 + j];
-
+ 
     int i = 0, j = 0, k = izq;
-    
+ 
     while (i < tamLeft && j < tamRight) {
-        if (Left[i]->puntos >= Right[j]->puntos) {
+ 
+        bool leftPrimero = false;
+ 
+        if (Left[i]->puntos > Right[j]->puntos) {
+            leftPrimero = true;
+ 
+        } else if (Left[i]->puntos == Right[j]->puntos) {
+            if (Left[i]->diferencia_goles > Right[j]->diferencia_goles) {
+                leftPrimero = true;
+ 
+            } else if (Left[i]->diferencia_goles == Right[j]->diferencia_goles) {
+                if (Left[i]->goles_favor >= Right[j]->goles_favor) {
+                    leftPrimero = true;
+                }
+            }
+        }
+ 
+        if (leftPrimero) {
             arreglo[k] = Left[i];
             i++;
         } else {
@@ -121,11 +160,11 @@ void merge(Equipo* arreglo[], int izq, int mid, int der) {
         }
         k++;
     }
-
-    
+ 
     while (i < tamLeft)  { arreglo[k] = Left[i];  i++; k++; }
     while (j < tamRight) { arreglo[k] = Right[j]; j++; k++; }
 }
+ 
 
 void mergeSort(Equipo* arreglo[], int izq, int der) {
 
@@ -141,22 +180,34 @@ void mergeSort(Equipo* arreglo[], int izq, int der) {
 // Parte C: la función del menú 
 
 void tablaPosPorPuntos(Equipo* arbol) {
-
+	
     Equipo* arreglo[100];   
     int contador = 0;
 
     extraerEquipos(arbol, arreglo, contador);
 
-    mergeSort(arreglo, 0, contador - 1);
+    mergeSort(arreglo, 0, contador - 1);	
 
     cout << "       TABLA DE POSICIONES              " << endl;
+    cout << " Pos  Club                PJ   G   E   P   GF  GC  DG   Pts"          << endl;
 
     for (int i = 0; i < contador; i++) {
-        cout << i + 1 << ". "
-             << arreglo[i]->nombre_equipo
-             << " - " << arreglo[i]->puntos << " pts" << endl;
+        cout << "  " << i + 1 << ".  ";
+ 
+        cout << arreglo[i]->nombre_equipo;
+        int espacios = 20 - strlen(arreglo[i]->nombre_equipo);
+        for (int s = 0; s < espacios; s++) cout << " ";
+ 
+        cout << arreglo[i]->pj               << "    "
+             << arreglo[i]->ganados          << "   "
+             << arreglo[i]->empatados        << "   "
+             << arreglo[i]->perdidos         << "   "
+             << arreglo[i]->goles_favor      << "   "
+             << arreglo[i]->goles_contra     << "   "
+             << arreglo[i]->diferencia_goles << "    "
+             << arreglo[i]->puntos
+             << endl;
     }
-    cout << "========================================" << endl;
 }
 
 int main() {
@@ -164,7 +215,7 @@ int main() {
     Equipo* liga = NULL;   
 
     int opcion;
-    do {
+    do {	
         cout << "      LIGAMASTER       " << endl;
         cout << "1. Registrar nuevo equipo"               << endl;
         cout << "2. Buscar equipo por nombre"             << endl;
@@ -177,6 +228,10 @@ int main() {
         switch (opcion) {
 
             case 1: {
+            	if (contarEquipos(liga) >= 20) {
+        		cout << ">> Error: El torneo ya esta lleno. Se alcanzo el limite de 20 equipos para la creacion de jornadas." << endl;
+        		break; 
+    			}
                 char nombre[50];
                 cout << "\n--- REGISTRAR EQUIPO ---" << endl;
                 cout << "Nombre del equipo: ";
@@ -190,28 +245,41 @@ int main() {
                 char nombre[50];
                 cout << "\n--- BUSCAR EQUIPO ---" << endl;
                 cout << "Nombre del equipo: ";
-                cin >> nombre;
+                cin  >> nombre;
+ 
                 Equipo* eq = buscarEquipoPorNombre(liga, nombre);
                 if (eq != NULL) {
                     cout << ">> Encontrado: " << eq->nombre_equipo
-                         << " - " << eq->puntos << " pts" << endl;
+                         << " | Pts: "        << eq->puntos
+                         << " | PJ: "         << eq->pj
+                         << " | G: "          << eq->ganados
+                         << " | E: "          << eq->empatados
+                         << " | P: "          << eq->perdidos
+                         << " | GF: "         << eq->goles_favor
+                         << " | GC: "         << eq->goles_contra
+                         << " | DG: "         << eq->diferencia_goles
+                         << endl;
                 } else {
-                    cout << ">> No existe ese equipo." << endl;
+                    cout << ">> No se encontro ningun equipo con ese nombre, intenta de nuevo."
+                         << endl;
                 }
                 break;
             }
 
             case 3:
-                cout << "\n--- EQUIPOS REGISTRADOS ---" << endl;
-                mostrarEquipos(liga);
+                cout << "\nEQUIPOS REGISTRADOS" << endl;
+                if (liga == NULL) {
+                    cout << ">> No hay equipos registrados aun, vuelvelo a intentar." << endl;
+                } else {
+                    mostrarEquipos(liga);
+                }
                 break;
-
             case 4:
                 tablaPosPorPuntos(liga);
                 break;
 
             case 0:
-                cout << "\nSaliendo del programa...." << endl;
+                cout << "\nEstas saliendo del programa...." << endl;
                 break;
 
             default:
