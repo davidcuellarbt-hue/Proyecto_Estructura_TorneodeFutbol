@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/img">
+        <file>campo2.png</file>
+        <file>play2.png</file>
+    </qresource>
+</RCC>
