@@ -52,7 +52,7 @@ Este proyecto simula la organización de un torneo de fútbol profesional de **2
 
 > 🎬 **Haz clic en la imagen para ver el video de demostración completo**
 
-[![Demo del Sistema de Torneo de Fútbol](https://img.youtube.com/vi/YOUTUBE_VIDEO_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID)
+[![Demo del Sistema de Torneo de Fútbol](https://img.youtube.com/vi/YOUTUBE_VIDEO_ID/maxresdefault.jpg)](https://youtu.be/ZAZLbWbajPU)
 
 *Demostración completa: registro de equipos, jornadas, tabla de posiciones y Liguilla.*
 
